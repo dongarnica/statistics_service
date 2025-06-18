@@ -74,6 +74,7 @@
 # - Keep everything modular, simple, and clean.
 
 from statsmodels.tsa.stattools import coint
+import numpy as np
 
 def calculate_cointegration(series_a: list[float], series_b: list[float]) -> float | None:
     """
@@ -89,21 +90,22 @@ def calculate_cointegration(series_a: list[float], series_b: list[float]) -> flo
     # Check if series have equal length
     if len(series_a) != len(series_b):
         return None
-    
-    # Clean data by removing pairs where either value is None
-    clean_pairs = [(a, b) for a, b in zip(series_a, series_b) if a is not None and b is not None]
-      # Check if enough data points remain after cleaning
-    if len(clean_pairs) < 2:
+
+    # Convert to numpy arrays and mask out None/NaN values
+    arr_a = np.array(series_a, dtype=float)
+    arr_b = np.array(series_b, dtype=float)
+    mask = ~np.logical_or(np.isnan(arr_a), np.isnan(arr_b))
+    clean_a = arr_a[mask]
+    clean_b = arr_b[mask]
+
+    # Check if enough data points remain after cleaning
+    if clean_a.size < 2:
         return None
-    
-    # Separate cleaned data back into two series
-    clean_a = [pair[0] for pair in clean_pairs]
-    clean_b = [pair[1] for pair in clean_pairs]
     
     try:
         # Perform Engle-Granger cointegration test
         test_stat, p_value, critical_values = coint(clean_a, clean_b)
-        return p_value
+        return float(p_value)
         
     except Exception:
         # Return None if cointegration test fails
