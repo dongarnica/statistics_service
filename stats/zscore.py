@@ -101,6 +101,7 @@ import os
 import importlib.util
 from datetime import datetime
 from app.mlflow_utils.mlflow_utils import init_mlflow, log_params, log_metrics, start_new_run_with_name
+import matplotlib.pyplot as plt
 
 # Import the built-in statistics module
 spec = importlib.util.find_spec('statistics')
@@ -112,7 +113,7 @@ else:
     import math
     builtin_stats = None
 
-def calculate_zscore(prices: list[float], symbol: str = None, timeframe_minutes: int = None, 
+def calculate_zscore(prices: list[float], symbol: str = None, timeframe_minutes: int = None,
                      z_threshold_upper: float = None, z_threshold_lower: float = None) -> list[float]:
     """
     Calculates z-score for a series of price values with MLflow logging integration.
@@ -214,9 +215,38 @@ def calculate_zscore(prices: list[float], symbol: str = None, timeframe_minutes:
             log_metrics(metrics)
         except Exception as e:
             print(f"Warning: MLflow logging failed: {e}")
-        
+
         return z_scores
-        
+
     except Exception:
         # Return None for all if calculation fails
         return [None] * len(prices)
+
+
+def plot_zscore(z_scores: list[float], output_file: str | None = None) -> None:
+    """Plot z-score values as a line chart.
+
+    Args:
+        z_scores: List of z-score values, may contain None
+        output_file: Optional path to save the plot instead of showing it
+    """
+    valid_points = [(i, z) for i, z in enumerate(z_scores) if z is not None]
+    if not valid_points:
+        return
+
+    x_vals, y_vals = zip(*valid_points)
+
+    plt.figure()
+    plt.plot(x_vals, y_vals, label="z-score")
+    plt.axhline(0, color="gray", linewidth=0.5)
+    plt.xlabel("Index")
+    plt.ylabel("Z-score")
+    plt.title("Z-Score Over Time")
+    plt.legend()
+
+    if output_file:
+        plt.savefig(output_file)
+    else:
+        plt.show()
+
+    plt.close()
